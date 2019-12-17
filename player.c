@@ -3,6 +3,8 @@
 //
 
 #include "player.h"
+#include "globalVariable.h"
+
 
 player* createPlayer(int socket, char *name) {
     player *newPlayer = NULL;
@@ -22,4 +24,22 @@ void freePlayer(player **player) {
     free((*player)->nick);
     free((*player));
     *player = NULL;
+}
+
+player* findPlayerByName(char *name){
+    for (int i = 0; i < MAX_PLAYER_COUNT; ++i) {
+        if (PLAYERS[i] != NULL && !strcmp(PLAYERS[i]->nick, name)){
+            player *temp = NULL;
+            temp = PLAYERS[i];
+            return temp;
+        }
+    }
+}
+
+void printPlayers(){
+    for (int i = 0; i < MAX_PLAYER_COUNT; ++i) {
+        if (PLAYERS[i] != NULL) {
+            printf("Player %s se socketem %d", PLAYERS[i]->nick, PLAYERS[i]->playerSocket);
+        }
+    }
 }

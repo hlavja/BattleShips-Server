@@ -11,13 +11,19 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-typedef struct {
+
+
+typedef struct player{
     char nick [30];
     int playerSocket;
     bool inGame;
     int gameId;
 } player;
 
+player* createPlayer(int socket, char *name);
 void freePlayer(player **player);
+
+player* findPlayerByName(char *name);
+void printPlayers();
 
 #endif //UPS_PLAYER_H

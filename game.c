@@ -4,15 +4,11 @@
 
 #include "game.h"
 #include "globalVariable.h"
-#include <sys/types.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 game *createNewGame(player *player1){
     game *newGame = NULL;
     newGame = malloc(sizeof(game));
-
+    newGame->player2 = malloc(sizeof(player));
     newGame->player2 = NULL;
 
     newGame->player1Ships = NUMBER_OF_SHIPS;
@@ -36,6 +32,7 @@ game *createNewGame(player *player1){
     newGame->player1 = player1;
     newGame->playerCount = 1;
     strncpy(newGame->gameOwnerNick, player1->nick, 30);
+    printf("Created game with ID:%li  OwnerName:%s", newGame->gameId, player1->nick);
     return newGame;
 }
 
@@ -50,9 +47,10 @@ void freeGames(game **game) {
 
 void printGames(){
     for (int i = 0; i < MAX_ROOMS; ++i) {
-
+        if (GAMES[i] != NULL) {
+            printf("GAME #%ld: %s vs. %s (%d:%d)\n", GAMES[i]->gameId, GAMES[i]->player1->nick, GAMES[i]->player2->nick, GAMES[i]->player1Ships, GAMES[i]->player2Ships);
+        }
     }
-
 }
 
 

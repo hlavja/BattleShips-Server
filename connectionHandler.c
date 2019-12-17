@@ -2,74 +2,80 @@
 // Created by hlavja on 12/12/2019.
 //
 #include "connectionHandler.h"
+#include "gameController.h"
+#include "globalVariable.h"
+#include "logger.h"
+
+void lostConnectionToPlayer(int socket);
 
 void *connectionHandler(void *arg){
-    int client_sock, val, size_rec, res;
-    char msg[200], msg_size[3];
-    client_sock = *(int *) arg;
-    int missed_ping = 0;
+    int clientSocket, receivedBoolean, messageSize, command;
+    char message[200], msgSize[3];
+    clientSocket = *(int *) arg;
+    int missedPings = 0;
 
     while (1) {
-        memset(msg, '\0', sizeof(msg));
-        memset(msg_size, '\0', sizeof(msg_size));
-        val = recv(client_sock, msg_size, 3, 0);
+        memset(message, '\0', sizeof(message));
+        memset(msgSize, '\0', sizeof(msgSize));
+        receivedBoolean = recv(clientSocket, msgSize, 3, 0); //first three bytes determine message length
+        logReceive(3);
 
-        while (val < 0 && missed_ping < 12) {
+        while (receivedBoolean < 0 && missedPings < 120) {
 
-            if (missed_ping == 1) {
-                printf("AAAAASending lost con notify.\n");
-                //lostcontopl(client_sock);
+            if (missedPings == 1) {
+                printf("Sending lost con notify.\n");
+                lostConnectionToPlayer(clientSocket);
             }
-            send(client_sock, "ping\n", 5, 0);
-            printf("Timeout. Sending ping to socket: %d\n", client_sock);
-            val = recv(client_sock, msg_size, 3, 0);
+            send(clientSocket, "ping\n", 5, 0);
+            printf("Timeout. Sending ping to socket: %d\n", clientSocket);
+            receivedBoolean = recv(clientSocket, msgSize, 3, 0);
+            logReceive(3);
+            missedPings++;
 
-            missed_ping++;
         }
 
-        if (missed_ping == 12) {
-            //logoffbysock(client_sock);
-            printf("Closing connection. Socket: %d\n", client_sock);
+        if (missedPings == 12) {
+            socketCut(clientSocket);
+            printf("Closing connection. Socket: %d\n", clientSocket);
             free(arg);
             return 0;
         }
 
-        missed_ping = 0;
+        missedPings = 0;
+        messageSize = strtol(msgSize, NULL, 10);  //size of receiving message
 
-        size_rec = strtol(msg_size, NULL, 10);
-
-        if (size_rec > 0) {
-            val = recv(client_sock, msg, size_rec, 0);
-            //bytes_in += (3);
+        if (messageSize > 0) {
+            receivedBoolean = recv(clientSocket, message, messageSize, 0);  //save rest of message to message
+            logReceive(messageSize);
         }
-        if (val < 0) {
+        if (receivedBoolean < 0) {
             continue;
         }
 
-        res = 2;//parseMessage(client_sock, msg);
-        if (res == 2) {
-            close(client_sock);
+        printf("Message form client: %s\n", msgSize);
+        command = parseMessage(clientSocket, message);
+
+        if (command == 2) {
+            close(clientSocket);
             free(arg);
             break;
         }
 
-        if(val == 0) {
+        if(receivedBoolean == 0) {
             printf("Connection closed.\n");
-            //logoffbysock(client_sock);
-            close(client_sock);
+            socketCut(clientSocket);
+            close(clientSocket);
             free(arg);
-            break;
+            return 0;
         }
 
-        if (res == 0) {
+        if (command == 0) {
             printf("Message not recognized\n");
-            //logoffbysock(client_sock);
-            close(client_sock);
+            socketCut(clientSocket);
+            close(clientSocket);
             free(arg);
-            break;
+            return 0;
         }
     }
-    //printf("Bytes in:%d\n", bytes_in);
-    //printf("Bytes out:%d\n", bytes_out);
     return 0;
 }

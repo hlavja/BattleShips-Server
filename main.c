@@ -1,26 +1,16 @@
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
-#include <netinet/in.h>
-#include <stdlib.h>
-#include <time.h>
-#include <sys/ioctl.h>
-#include <string.h>
-#include <pthread.h>
-#include <ctype.h>
-#include <arpa/inet.h>
-#include <net/if.h>
+#include "main.h"
+#include "serverListener.h"
 #include "globalVariable.h"
 #include "server.h"
-#include "main.h"
 
 void printHelp();
 
 int main(int argc, char *argv[]) {
+    pthread_t serverListenerThread;
+
     printf("START!\n");
     readParameters(argc, argv);
+    pthread_create(&serverListenerThread, NULL, &serverListener, NULL);
     startServer();
 }
 

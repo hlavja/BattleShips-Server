@@ -2,12 +2,15 @@
 // Created by hlavja on 09/12/2019.
 //
 #include "server.h"
+#include "globalVariable.h"
+#include "logger.h"
+#include "connectionHandler.h"
 
 void initializeRoomsAndPlayersArrays() {
     int i;
-    PLAYERS = calloc(MAX_CLIENT_COUNT, sizeof(player *));
+    PLAYERS = calloc(MAX_PLAYER_COUNT, sizeof(player *));
     GAMES = calloc(MAX_ROOMS, sizeof(game *));
-    for (i = 0; i < MAX_CLIENT_COUNT; i++) {
+    for (i = 0; i < MAX_PLAYER_COUNT; i++) {
         PLAYERS[i] = NULL;
     }
 
@@ -56,13 +59,13 @@ int isIpValid(char *ipString) {
 int startServer(){
     int serverSocket, clientSocket, *fd;
     struct sockaddr_in myAddr, remoteAddr;
-    pthread_t serverListenerThread, connectionThread;
+    pthread_t connectionThread;
     struct timeval timeval = {1,0};
     socklen_t remoteAddrLen = sizeof(struct sockaddr);
 
     serverLoggingStart();
 
-    printf("Server start!");
+    printf("Server start!\n");
 
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -97,13 +100,12 @@ int startServer(){
     }
 
     printf("Server successfully started\n");
-    printf("--------------------------------------");
+    printf("--------------------------------------\n");
     printf("Server is running on %s:%d\n", "10.0.2.15", SERVER_PORT);
-    printf("--------------------------------------");
+    printf("--------------------------------------\n");
 
+    pthread_rwlock_init(&LOCKTHREAD, NULL);
     initializeRoomsAndPlayersArrays();
-
-    pthread_create(&serverListenerThread, NULL, &serverListener, NULL);
 
     while(1){
         clientSocket = accept(serverSocket, (struct sockaddr *) &remoteAddr, &remoteAddrLen);
@@ -111,7 +113,7 @@ int startServer(){
         if (clientSocket > 0){
             fd = malloc(sizeof(int));
             *fd = clientSocket;
-            printf("New Connection!");
+            printf("New Connection!\n");
             pthread_create(&connectionThread, NULL, (void *) &connectionHandler, (void *) fd);
         } else{
             printf("ERROR");

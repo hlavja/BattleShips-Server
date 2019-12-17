@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include "player.h"
 
-typedef struct {
+typedef struct game{
     int playerCount;
     long gameId;
     char gameOwnerNick[30];

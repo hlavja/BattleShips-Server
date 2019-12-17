@@ -9,7 +9,6 @@
 #include <semaphore.h>
 #include <string.h>
 #include <stdlib.h>
-#include "globalVariable.h"
 
 void serverLoggingStart();
 void logMsg(char *msg);

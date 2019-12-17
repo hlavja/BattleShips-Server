@@ -9,10 +9,7 @@
 #include <strings.h>
 #include <stdlib.h>
 #include <signal.h>
-#include "game.h"
-#include "serverListener.h"
-#include "globalVariable.h"
 
 void *serverListener(void *arg);
-void sigint_handler(int sig);
+void sigintHandler(int sig);
 #endif //UPS_SERVERLISTENER_H

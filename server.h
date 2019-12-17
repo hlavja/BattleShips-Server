@@ -19,13 +19,6 @@
 #include <ctype.h>
 #include <arpa/inet.h>
 #include <net/if.h>
-#include "server.h"
-#include "globalVariable.h"
-#include "game.h"
-#include "player.h"
-#include "logger.h"
-#include "connectionHandler.h"
-#include "serverListener.h"
 
 int startServer();
 

@@ -2,24 +2,27 @@
 // Created by hlavja on 13/12/2019.
 //
 #include "serverListener.h"
+#include "globalVariable.h"
+#include "game.h"
+#include "logger.h"
 
 void *serverListener(void *arg){
 
-    signal(SIGINT, sigint_handler);
+    signal(SIGINT, sigintHandler);
 
     char *command = calloc(sizeof(char) * BUFFERSIZE, 1);
     while(1){
-        printf(">>>");
+        printf(">>>\n");
         scanf("%s",command);
         if(strcasecmp(command, "exit")==0 || strcasecmp(command, "close")==0){
-            //log_server_add("Server ukoncen prikazem EXIT\n");
-            //log_server_over();
+            logMsg("Server ukoncen prikazem EXIT\n");
+            logServerShutdown();
             printf("\nSERVER: Ukonceno prikazem EXIT\n");
             exit(0);
         }
         else if(strcmp(command, "game")==0){
             printf("\nBezici hry:\n");
-            printf("---------------------------");
+            printf("---------------------------\n");
             printGames();
         }
         else if(strcmp(command, "info")==0){
@@ -34,6 +37,11 @@ void *serverListener(void *arg){
             printf("game: vypise prave probihajici hry\n");
             printf("info: vypise informace o server\n");
         }
+        else if(strcmp(command, "player")==0){
+            printf("\nPrihlaseni uzivatele:\n");
+            printf("---------------------------\n");
+            printPlayers();
+        }
         else{
             printf("Neznamy prikaz. Pouzijte \"help\" pro napovedu.\n");
         }
@@ -44,9 +52,9 @@ void *serverListener(void *arg){
 
 }
 
-void sigint_handler(int sig){
-    //log_server_add("Ukonceno pres CTRL+C\n");
-    //log_server_over();
+void sigintHandler(int sig){
+    logMsg("Ukonceno pres CTRL+C\n");
+    logServerShutdown();
     printf("\nSERVER: Detekovano stiknuti CTRL+C. Server ukoncen!\n");
     exit(1);
 }

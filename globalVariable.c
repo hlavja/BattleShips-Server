@@ -4,16 +4,17 @@
 
 #include "globalVariable.h"
 
+pthread_rwlock_t LOCKTHREAD;
 int SERVER_PORT = 15000;
 int ROOM_WAITING_TIME = 150000;
 int TIMEOUT = 1500;
 char *IP_ADDRESS;
-int MAX_ROOMS = 5;
+int MAX_ROOMS = 5, ACTIVE_ROOMS = 0;
 long GAME_COUNTER = 1;
 int NUMBER_OF_SHIPS = 4;
 fd_set CLIENT_SOCKS;
 int FD_OFFSET = 3;
-int MAX_CLIENT_COUNT = 10, CLIENT_COUNT = 0;
+int MAX_PLAYER_COUNT = 10, PLAYER_COUNT = 0;
 int BUFFERSIZE = 200;
 
 FILE *LOG_FILE;

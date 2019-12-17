@@ -3,6 +3,7 @@
 //
 
 #include "logger.h"
+#include "globalVariable.h"
 
 
 sem_t mutex;
@@ -62,7 +63,7 @@ void logServerShutdown(){
     fprintf(LOG_FILE, "STATISTIKA\n");
     fprintf(LOG_FILE, "-------------------------\n");
     fprintf(LOG_FILE, "Celkovy pocet odehranych her: %ld\n", GAME_COUNTER - 1);
-    fprintf(LOG_FILE, "Celkovy pocet pripojenych klientu: %d\n", CLIENT_COUNT);
+    fprintf(LOG_FILE, "Celkovy pocet pripojenych klientu: %d\n", PLAYER_COUNT);
     fprintf(LOG_FILE, "Celkovy pocet odeslanych zprav: %ld\n", MESSAGE_SENT);
     fprintf(LOG_FILE, "Celkovy pocet odeslanych bytu: %ld\n", BYTE_SENT);
     fprintf(LOG_FILE, "Celkovy pocet prijatych zprav: %ld\n", MESSAGE_RECV);
