@@ -16,7 +16,7 @@ game *createNewGame(player *player1){
     newGame->player2Grid = false;
     newGame->player1Grid = false;
     newGame->playerTurn = 0;
-    newGame->gameStatus = 1; //running
+    newGame->gameStatus = 0; // 0 waiting, 1 ready, 2 running
     newGame->player1Connected = true;
     newGame->player2Connected = false;
 
@@ -32,7 +32,7 @@ game *createNewGame(player *player1){
     newGame->player1 = player1;
     newGame->playerCount = 1;
     strncpy(newGame->gameOwnerNick, player1->nick, 30);
-    printf("Created game with ID:%li  OwnerName:%s", newGame->gameId, player1->nick);
+    printf("Created game with ID: %li  OwnerName: %s\n", newGame->gameId, player1->nick);
     return newGame;
 }
 

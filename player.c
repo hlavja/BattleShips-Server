@@ -39,7 +39,7 @@ player* findPlayerByName(char *name){
 void printPlayers(){
     for (int i = 0; i < MAX_PLAYER_COUNT; ++i) {
         if (PLAYERS[i] != NULL) {
-            printf("Player %s se socketem %d", PLAYERS[i]->nick, PLAYERS[i]->playerSocket);
+            printf("Player %s se socketem %d\n", PLAYERS[i]->nick, PLAYERS[i]->playerSocket);
         }
     }
 }

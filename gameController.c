@@ -8,9 +8,8 @@
 #include "player.h"
 #include "logger.h"
 
-void lostConnectionToPlayer(int socket){
 
-}
+void notifyJoint(int socket, char *message2);
 
 int parseMessage(int socket, char *msg) {
     long int type;
@@ -46,15 +45,15 @@ int parseMessage(int socket, char *msg) {
             printf("Received rooms request: %s\n", msg);
             pthread_rwlock_unlock(&LOCKTHREAD);
             return 4;
-        /*case 5:
-            pthread_rwlock_rdlock(&lock);
+        case 5:
+            pthread_rwlock_rdlock(&LOCKTHREAD);
             printf("Received join room request: %s\n", msg);
             name = strtok(msg + 2, ";");
             room = strtok(NULL, ";");
-            join_room(socket, name, room);
-            pthread_rwlock_unlock(&lock);
+            joinRoom(socket, name, room);
+            pthread_rwlock_unlock(&LOCKTHREAD);
             return 5;
-        case 6:
+        /*case 6:
             pthread_rwlock_rdlock(&lock);
             printf("Received leave room request: %s\n", msg);
             name = strtok(msg + 2, ";");
@@ -137,14 +136,70 @@ int parseMessage(int socket, char *msg) {
     }
 }
 
+void joinRoom(int socket, char *name, char *room) {
+    char *message;
+    message = calloc(68, sizeof(char));
+    strcat(message, "joined;");
+    for (int i = 0; i < MAX_ROOMS; ++i) {
+        if (GAMES[i] != NULL && !strcmp(GAMES[i]->gameOwnerNick, room)){
+            if (GAMES[i]->gameStatus == 0){
+                if (GAMES[i]->playerCount < 2){
+                    GAMES[i]->playerCount++;
+                    GAMES[i]->player2 = findPlayerByName(name);
+                    GAMES[i]->gameStatus = 1;
+                    if (!GAMES[i]->player2){
+                        send(socket, "nepodariloSePripojit\n", 21, 0);
+                        logSent(21);
+                        printf("Nepripojen hrac %s\n", name);
+                    }
+                    strcat(message, GAMES[i]->gameOwnerNick);
+                    strcat(message, ";");
+                    strcat(message, GAMES[i]->player1->nick);
+                    strcat(message, "\n");
+                    send(socket, message, 68, 0);
+                    logSent(68);
+                    printf("Send to player2 %i %s\n", socket, message);
+                    notifyJoint(GAMES[i]->player1->playerSocket, GAMES[i]->player2->nick);
+                }
+            }
+        }
+    }
+}
+
+void notifyJoint(int socket, char *player) {
+    char *message2;
+    message2 = calloc(43, sizeof(char));
+    strcat(message2, "prepareGame;");
+    strcat(message2, player);
+    strcat(message2, "\n");
+    send(socket, message2, 43,0);
+    logSent(43);
+    printf("Send to player1 %i %s\n", socket, message2);
+}
+
 void requestRooms(int socket) {
     //TODO
-    send(socket, "maxErr\n", 7, 0);
+    char *message;
+    message = calloc(30 * MAX_ROOMS + 17, sizeof(char));
+    strcat(message, "rooms;");
+    for (int i = 0; i < MAX_ROOMS; ++i) {
+        if (GAMES[i] != NULL && GAMES[i]->playerCount < 2 && GAMES[i]->gameStatus == 0){
+            //printf("Room %s \n", GAMES[i]->gameOwnerNick);
+            strcat(message, GAMES[i]->gameOwnerNick);
+            strcat(message, ",");
+        }
+    }
+    strcat(message, "\n");
+    send(socket, message, strlen(message), 0);
+    printf("Sent to player %s \n", message);
+    logSent(strlen(message));
+    free(message);
+    //send(socket, "maxErr\n", 7, 0);
 }
 
 void initRoom(int socket, char *ownerName) {
     if (ACTIVE_ROOMS == MAX_PLAYER_COUNT){
-        printf("Maximum rooms on server!");
+        printf("Maximum rooms on server!\n");
         send(socket, "maxErr\n", 7, 0);
         logSent(7);
     }
@@ -184,25 +239,25 @@ void playerLogout(int socket, char *name) {
             player *temporary = PLAYERS[i];
             //free(&temporary);
             PLAYERS[i] = NULL;
-            printf("User %s logged off", name);
+            printf("User %s logged off \n", name);
             PLAYER_COUNT--;
             close(socket);
             return;
         }
     }
-    printf("Logout PROBLEM with user %s", name);
+    printf("Logout PROBLEM with user %s \n", name);
 }
 
 void playerLogin(int socket, char *name) {
     if (PLAYER_COUNT == MAX_PLAYER_COUNT){
-        printf("Maximum players on server!");
+        printf("Maximum players on server!\n");
         send(socket, "logErr\n", 7, 0);
         logSent(7);
     }
 
     for (int i = 0; i < MAX_PLAYER_COUNT; ++i) {
         if (PLAYERS[i] != NULL && !strcmp(PLAYERS[i]->nick, name)){
-            printf("Username already taken!");
+            printf("Username already taken!\n");
             send(socket, "nickTaken\n", 10, 0);
             logSent(10);
         }
@@ -211,7 +266,7 @@ void playerLogin(int socket, char *name) {
     player *newPlayer = createPlayer(socket, name);
 
     if (!newPlayer){
-        printf("Server ERROR");
+        printf("Server ERROR\n");
         send(socket, "logErr\n", 7, 0);
         logSent(7);
     }
@@ -224,7 +279,7 @@ void playerLogin(int socket, char *name) {
     }
 
     PLAYER_COUNT++;
-    printf("User %s logged in!", name);
+    printf("User %s logged in!\n", name);
     send(socket, "logged\n", 7, 0);
     logSent(7);
 }
@@ -233,7 +288,7 @@ void socketCut(int socket){
     for (int i = 0; i < MAX_PLAYER_COUNT; ++i) {
         if (PLAYERS[i] != NULL){
             if (PLAYERS[i]->playerSocket == socket){
-                printf("User %s disconnected due violations against server policy!", PLAYERS[i]->nick);
+                printf("User %s disconnected due violations against server policy!\n", PLAYERS[i]->nick);
                 //freePlayer(&PLAYERS[i]);
                 PLAYER_COUNT--;
                 PLAYERS[i] = NULL;

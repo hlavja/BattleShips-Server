@@ -18,4 +18,6 @@ void lostConnectionToPlayer(int socket);
 
 void requestRooms(int socket);
 
+void joinRoom(int socket, char *name, char *room);
+
 #endif //UPS_GAMECONTROLLER_H

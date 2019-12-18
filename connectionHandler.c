@@ -20,14 +20,14 @@ void *connectionHandler(void *arg){
         receivedBoolean = recv(clientSocket, msgSize, 3, 0); //first three bytes determine message length
         logReceive(3);
 
-        while (receivedBoolean < 0 && missedPings < 120) {
+        while (receivedBoolean < 0 && missedPings < 5) {
 
-            if (missedPings == 1) {
-                printf("Sending lost con notify.\n");
+            if (missedPings == 3) {
+                printf("Sending %i lost con notify %d.\n",missedPings, clientSocket);
                 lostConnectionToPlayer(clientSocket);
             }
             send(clientSocket, "ping\n", 5, 0);
-            printf("Timeout. Sending ping to socket: %d\n", clientSocket);
+            //printf("Timeout. Sending ping to socket: %d\n", clientSocket);
             receivedBoolean = recv(clientSocket, msgSize, 3, 0);
             logReceive(3);
             missedPings++;
@@ -66,7 +66,7 @@ void *connectionHandler(void *arg){
             socketCut(clientSocket);
             close(clientSocket);
             free(arg);
-            return 0;
+            break;
         }
 
         if (command == 0) {
@@ -74,7 +74,7 @@ void *connectionHandler(void *arg){
             socketCut(clientSocket);
             close(clientSocket);
             free(arg);
-            return 0;
+            break;
         }
     }
     return 0;
