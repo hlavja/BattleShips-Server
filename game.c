@@ -11,6 +11,8 @@ game *createNewGame(player *player1){
     newGame->player2 = malloc(sizeof(player));
     newGame->player2 = NULL;
 
+    newGame->player1Repeat = false;
+    newGame->player2Repeat = false;
     newGame->player1Ships = NUMBER_OF_SHIPS;
     newGame->player2Ships = NUMBER_OF_SHIPS;
     newGame->player2Grid = false;

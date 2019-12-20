@@ -20,6 +20,7 @@ typedef struct game{
     bool player1Connected, player2Connected;
     player *player1;
     player *player2;
+    bool player2Repeat, player1Repeat;
 } game;
 
 game *createNewGame(player *player1);

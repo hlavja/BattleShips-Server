@@ -6,6 +6,7 @@
 #define UPS_GAMECONTROLLER_H
 
 #include <pthread.h>
+#include "game.h"
 
 void socketCut(int socket);
 int parseMessage(int socket, char *msg);
@@ -16,6 +17,7 @@ void initRoom(int socket, char *ownerName);
 void shoot(int socket, char *name, char *room, char x, char y);
 void lostConnectionToPlayer(int socket);
 
+void sendGameResult(int winnerSocket, int looserSocket);
 void notifyJoin(int socket, char *message2);
 
 void setShips(int socket, char *name, char *room, char *placing);

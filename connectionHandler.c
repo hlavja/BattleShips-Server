@@ -7,12 +7,12 @@
 #include "logger.h"
 
 void lostConnectionToPlayer(int socket);
+int missedPings = 0;
 
 void *connectionHandler(void *arg){
     int clientSocket, receivedBoolean, messageSize, command;
     char message[200], msgSize[3];
     clientSocket = *(int *) arg;
-    int missedPings = 0;
 
     while (1) {
         memset(message, '\0', sizeof(message));
@@ -20,11 +20,11 @@ void *connectionHandler(void *arg){
         receivedBoolean = recv(clientSocket, msgSize, 3, 0); //first three bytes determine message length
         logReceive(3);
 
-        while (receivedBoolean < 0 && missedPings < 5) {
+        while (receivedBoolean < 0 && missedPings < 100) {
 
-            if (missedPings == 3) {
+            if (missedPings == 99) {
                 printf("Sending %i lost con notify %d.\n",missedPings, clientSocket);
-//                lostConnectionToPlayer(clientSocket);
+                lostConnectionToPlayer(clientSocket);
             }
             send(clientSocket, "ping\n", 5, 0);
             //printf("Timeout. Sending ping to socket: %d\n", clientSocket);
@@ -69,6 +69,7 @@ void *connectionHandler(void *arg){
             break;
         }
 
+        //printf("%i", command);
         if (command == 0) {
             printf("Message not recognized\n");
             socketCut(clientSocket);

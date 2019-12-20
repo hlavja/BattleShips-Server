@@ -8,7 +8,11 @@
 #include "player.h"
 #include "logger.h"
 
-void endGame(game *endGame);
+void rematch(char *name, char *room);
+
+void resetGame(game *pGame);
+
+void leaveRoom(char *room);
 
 int parseMessage(int socket, char *msg) {
     long int type;
@@ -52,20 +56,13 @@ int parseMessage(int socket, char *msg) {
             joinRoom(socket, name, room);
             pthread_rwlock_unlock(&LOCKTHREAD);
             return 5;
-        /*case 6:
-            pthread_rwlock_rdlock(&lock);
+        case 6:
+            pthread_rwlock_rdlock(&LOCKTHREAD);
             printf("Received leave room request: %s\n", msg);
-            name = strtok(msg + 2, ";");
-            room = strtok(NULL, ";");
-            leave_room(socket, name, room);
-            pthread_rwlock_unlock(&lock);
+            room = strtok(msg + 2, ";");
+            leaveRoom(room);
+            pthread_rwlock_unlock(&LOCKTHREAD);
             return 6;
-        case 7:
-            pthread_rwlock_rdlock(&lock);
-            printf("Received start prepare stage request: %s\n", msg);
-            start_prep(socket, msg + 2);
-            pthread_rwlock_unlock(&lock);
-            return 7;*/
         case 8:
             pthread_rwlock_rdlock(&LOCKTHREAD);
             printf("Received ship placement: %s\n", msg);
@@ -93,16 +90,16 @@ int parseMessage(int socket, char *msg) {
             room = strtok(NULL, ";");
             leave_game(socket, name, room);
             pthread_rwlock_unlock(&lock);
-            return 11;
+            return 11;*/
         case 12:
-            pthread_rwlock_rdlock(&lock);
+            pthread_rwlock_rdlock(&LOCKTHREAD);
             printf("Received rematch message: %s\n", msg);
             name = strtok(msg + 2, ";");
             room = strtok(NULL, ";");
             rematch(name, room);
-            pthread_rwlock_unlock(&lock);
+            pthread_rwlock_unlock(&LOCKTHREAD);
             return 12;
-        case 13:
+        /*case 13:
             pthread_rwlock_rdlock(&lock);
             printf("Received ping message, sending response.\n");
             send(socket, "alive\n", 6, 0);
@@ -129,6 +126,63 @@ int parseMessage(int socket, char *msg) {
     }
 }
 
+void leaveRoom(char *room) {
+    for (int i = 0; i < MAX_ROOMS; ++i) {
+        if (GAMES[i] != NULL && !strcmp(GAMES[i]->gameOwnerNick, room)){
+            send(GAMES[i]->player1->playerSocket,"endGame\n", 8, 0);
+            send(GAMES[i]->player2->playerSocket,"endGame\n", 8, 0);
+            GAMES[i] = NULL;
+        }
+    }
+
+}
+
+void rematch(char *name, char *room) {
+    for (int i = 0; i < MAX_ROOMS; ++i) {
+        if (GAMES[i] != NULL && !strcmp(GAMES[i]->gameOwnerNick, room)){
+            if (!strcmp(GAMES[i]->player1->nick, name)){
+                GAMES[i]->player1Repeat = true;
+                if (GAMES[i]->player2Repeat && GAMES[i]->player1Repeat){
+                    resetGame(GAMES[i]);
+                    char *repeat = "repeat\n";
+                    send(GAMES[i]->player1->playerSocket, repeat, 7, 0);
+                    send(GAMES[i]->player2->playerSocket, repeat, 7, 0);
+                    return;
+                }
+            } else if (!strcmp(GAMES[i]->player2->nick, name)){
+                GAMES[i]->player2Repeat = true;
+                if (GAMES[i]->player2Repeat && GAMES[i]->player1Repeat){
+                    char *repeat = "repeat\n";
+                    send(GAMES[i]->player1->playerSocket, repeat, 7, 0);
+                    send(GAMES[i]->player2->playerSocket, repeat, 7, 0);
+                    return;
+                }
+            }
+        }
+    }
+
+
+
+}
+
+void resetGame(game *pGame) {
+    pGame->player1Ships = NUMBER_OF_SHIPS;
+    pGame->player2Ships = NUMBER_OF_SHIPS;
+    pGame->player2Grid = false;
+    pGame->player1Grid = false;
+    pGame->playerTurn = 1;
+    pGame->gameStatus = 1; // 0 waiting, 1 ready, 2 running
+
+    for (int i = 0; i < 6; ++i) {
+        for (int j = 0; j < 6; ++j) {
+            pGame->gridPlayer1[i][j] = 0;
+            pGame->gridPlayer2[i][j] = 0;
+        }
+    }
+    printf("Set game state with ID: %li  OwnerName: %s to placing stage!\n", pGame->gameId, pGame->gameOwnerNick);
+
+}
+
 void shoot(int socket, char *name, char *room, char x, char y) {
     int fireX = x - 48, fireY = y - 48;
     if (fireX > 5 || fireX < 0 || fireY > 5 || fireY < 0){
@@ -144,8 +198,10 @@ void shoot(int socket, char *name, char *room, char x, char y) {
                     if (GAMES[i]->gridPlayer2[fireX][fireY] == 1){
                         GAMES[i]->gridPlayer2[fireX][fireY] = 2;
                         GAMES[i]->player2Ships--;
+                        printf("Player 2 ships %i\n", GAMES[i]->player2Ships);
                         //player2 lose
                         if (GAMES[i]->player2Ships == 0){
+                            printf("Sending end game\n");
                             char *messageShot = NULL;
                             messageShot = calloc(12, sizeof(char));
                             strcat(messageShot, "my;shot;");
@@ -164,7 +220,7 @@ void shoot(int socket, char *name, char *room, char x, char y) {
                             strcat(enemyShot, "\n");
                             send(GAMES[i]->player2->playerSocket, enemyShot, 15, 0);
 
-                            endGame(GAMES[i]);
+                            sendGameResult(socket, GAMES[i]->player2->playerSocket);
                             return;
                            //game continue
                         } else {
@@ -225,8 +281,10 @@ void shoot(int socket, char *name, char *room, char x, char y) {
                     if (GAMES[i]->gridPlayer1[fireX][fireY] == 1){
                         GAMES[i]->gridPlayer1[fireX][fireY] = 2;
                         GAMES[i]->player1Ships--;
+                        printf("Player 1 ships %i\n", GAMES[i]->player1Ships);
                         //player1 lose
                         if (GAMES[i]->player1Ships == 0){
+                            printf("Sending end game\n");
                             char *messageShot = NULL;
                             messageShot = calloc(12, sizeof(char));
                             strcat(messageShot, "my;shot;");
@@ -245,7 +303,7 @@ void shoot(int socket, char *name, char *room, char x, char y) {
                             strcat(enemyShot, "\n");
                             send(GAMES[i]->player1->playerSocket, enemyShot, 15, 0);
 
-                            endGame(GAMES[i]);
+                            sendGameResult(socket, GAMES[i]->player1->playerSocket);
                             return;
                             //game continue
                         } else {
@@ -306,8 +364,33 @@ void shoot(int socket, char *name, char *room, char x, char y) {
     }
 }
 
-void endGame(game *endGame) {
+void sendGameResult(int winnerSocket, int loserSocket) {
+    char winMessage[] = "won\n";
+    send(winnerSocket, winMessage, 4, 0);
 
+    char loseMessage[] = "lost\n";
+    send(loserSocket, loseMessage, 5, 0);
+
+}
+
+void lostConnectionToPlayer(int socket){
+    for (int j = 0; j < MAX_ROOMS; ++j) {
+        if (GAMES[j] != NULL && GAMES[j]->player1->playerSocket == socket){
+            GAMES[j]->player1Connected = false;
+            break;
+        }
+        if (GAMES[j] != NULL && GAMES[j]->player2->playerSocket == socket){
+            GAMES[j]->player2Connected = false;
+            break;
+        }
+    }
+
+    for (int i = 0; i < MAX_PLAYER_COUNT; ++i) {
+        if (PLAYERS[i] != NULL && socket == PLAYERS[i]->playerSocket){
+            PLAYERS[i]->playerSocket = -1;
+            break;
+        }
+    }
 }
 
 void setShips(int socket, char *name, char *room, char *placing) {
