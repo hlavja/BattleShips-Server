@@ -24,7 +24,7 @@ void *connectionHandler(void *arg){
 
             if (missedPings == 3) {
                 printf("Sending %i lost con notify %d.\n",missedPings, clientSocket);
-                lostConnectionToPlayer(clientSocket);
+//                lostConnectionToPlayer(clientSocket);
             }
             send(clientSocket, "ping\n", 5, 0);
             //printf("Timeout. Sending ping to socket: %d\n", clientSocket);
@@ -52,7 +52,7 @@ void *connectionHandler(void *arg){
             continue;
         }
 
-        printf("Message form client: %s\n", msgSize);
+        //printf("Message form client: %s\n", msgSize);
         command = parseMessage(clientSocket, message);
 
         if (command == 2) {

@@ -13,8 +13,12 @@ void playerLogout(int socket, char *string);
 void playerLogin(int socket, char *string);
 
 void initRoom(int socket, char *ownerName);
-
+void shoot(int socket, char *name, char *room, char x, char y);
 void lostConnectionToPlayer(int socket);
+
+void notifyJoin(int socket, char *message2);
+
+void setShips(int socket, char *name, char *room, char *placing);
 
 void requestRooms(int socket);
 

@@ -15,7 +15,7 @@ game *createNewGame(player *player1){
     newGame->player2Ships = NUMBER_OF_SHIPS;
     newGame->player2Grid = false;
     newGame->player1Grid = false;
-    newGame->playerTurn = 0;
+    newGame->playerTurn = 1;
     newGame->gameStatus = 0; // 0 waiting, 1 ready, 2 running
     newGame->player1Connected = true;
     newGame->player2Connected = false;

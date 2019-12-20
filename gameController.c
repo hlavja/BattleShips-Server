@@ -8,16 +8,15 @@
 #include "player.h"
 #include "logger.h"
 
-
-void notifyJoint(int socket, char *message2);
+void endGame(game *endGame);
 
 int parseMessage(int socket, char *msg) {
     long int type;
-    char *name, *room, t[2], *place, *x, *y;
+    char *name, *room, t[2], *placing, *x, *y;
     t[0] = msg[0];
     t[1] = msg[1];
     type = strtol(t, NULL, 10);
-    printf("%s\n", msg);
+    //printf("%s\n", msg);
     //bytes_in += strlen(msg);
     switch (type) {
         case 1:
@@ -66,34 +65,28 @@ int parseMessage(int socket, char *msg) {
             printf("Received start prepare stage request: %s\n", msg);
             start_prep(socket, msg + 2);
             pthread_rwlock_unlock(&lock);
-            return 7;
+            return 7;*/
         case 8:
-            pthread_rwlock_rdlock(&lock);
+            pthread_rwlock_rdlock(&LOCKTHREAD);
             printf("Received ship placement: %s\n", msg);
             name = strtok(msg + 2, ";");
             room = strtok(NULL, ";");
-            place = strtok(NULL, ";");
+            placing = strtok(NULL, ";");
             // printf("Place %s\n", place);
-            set_placement(socket, name, room, place);
-            pthread_rwlock_unlock(&lock);
+            setShips(socket, name, room, placing);
+            pthread_rwlock_unlock(&LOCKTHREAD);
             return 8;
-        case 9:
-            pthread_rwlock_rdlock(&lock);
-            printf("Received start game request: %s\n", msg);
-            start_game(socket, msg + 2);
-            pthread_rwlock_unlock(&lock);
-            return 9;
         case 10:
-            pthread_rwlock_rdlock(&lock);
+            pthread_rwlock_rdlock(&LOCKTHREAD);
             printf("Received shoot message: %s\n", msg);
             name = strtok(msg + 2, ";");
             room = strtok(NULL, ";");
             x = strtok(NULL, ";");
             y = strtok(NULL, ";");
-            shoot1(socket, name, room, *x, *y);
-            pthread_rwlock_unlock(&lock);
+            shoot(socket, name, room, *x, *y);
+            pthread_rwlock_unlock(&LOCKTHREAD);
             return 10;
-        case 11:
+        /*case 11:
             pthread_rwlock_rdlock(&lock);
             printf("Received leave game: %s\n", msg);
             name = strtok(msg + 2, ";");
@@ -116,7 +109,7 @@ int parseMessage(int socket, char *msg) {
             pthread_rwlock_unlock(&lock);
             return 13;*/
         case 14:
-            printf("Received ping response from socket: %d\n", socket);
+            //printf("Received ping response from socket: %d\n", socket);
             return 14;
         /*case 15:
             pthread_rwlock_rdlock(&lock);
@@ -136,6 +129,225 @@ int parseMessage(int socket, char *msg) {
     }
 }
 
+void shoot(int socket, char *name, char *room, char x, char y) {
+    int fireX = x - 48, fireY = y - 48;
+    if (fireX > 5 || fireX < 0 || fireY > 5 || fireY < 0){
+        send(socket, "err\n", 4, 0);
+        close(socket);
+    } else {
+        for (int i = 0; i < MAX_ROOMS; ++i) {
+            if (GAMES[i] != NULL && !strcmp(GAMES[i]->gameOwnerNick, room)){
+                //fire from player1
+                if (strcmp(GAMES[i]->player1->nick,name) == 0 && GAMES[i]->playerTurn == 1){
+                    GAMES[i]->playerTurn = 2;
+                    //hit
+                    if (GAMES[i]->gridPlayer2[fireX][fireY] == 1){
+                        GAMES[i]->gridPlayer2[fireX][fireY] = 2;
+                        GAMES[i]->player2Ships--;
+                        //player2 lose
+                        if (GAMES[i]->player2Ships == 0){
+                            char *messageShot = NULL;
+                            messageShot = calloc(12, sizeof(char));
+                            strcat(messageShot, "my;shot;");
+                            strcat(messageShot, &x);
+                            strcat(messageShot, ",");
+                            strcat(messageShot, &y);
+                            strcat(messageShot, "\n");
+                            send(socket, messageShot, 12, 0);
+
+                            char *enemyShot = NULL;
+                            enemyShot = calloc(15, sizeof(char));
+                            strcat(enemyShot, "enemy;sink;");
+                            strcat(enemyShot, &x);
+                            strcat(enemyShot, ",");
+                            strcat(enemyShot, &y);
+                            strcat(enemyShot, "\n");
+                            send(GAMES[i]->player2->playerSocket, enemyShot, 15, 0);
+
+                            endGame(GAMES[i]);
+                            return;
+                           //game continue
+                        } else {
+                            char *messageShot = NULL;
+                            messageShot = calloc(12, sizeof(char));
+                            strcat(messageShot, "my;shot;");
+                            strcat(messageShot, &x);
+                            strcat(messageShot, ",");
+                            strcat(messageShot, &y);
+                            strcat(messageShot, "\n");
+                            send(socket, messageShot, 12, 0);
+                            printf("send response for hit to player 1\n");
+
+                            char *enemyShot = NULL;
+                            enemyShot = calloc(15, sizeof(char));
+                            strcat(enemyShot, "enemy;sink;");
+                            strcat(enemyShot, &x);
+                            strcat(enemyShot, ",");
+                            strcat(enemyShot, &y);
+                            strcat(enemyShot, "\n");
+                            send(GAMES[i]->player2->playerSocket, enemyShot, 15, 0);
+                            printf("send response for hit to player 2\n");
+                        }
+                        //miss
+                    } else if (GAMES[i]->gridPlayer2[fireX][fireY] == 0){
+                        GAMES[i]->gridPlayer2[fireX][fireY] = 2;
+                        char *messageShot = NULL;
+                        messageShot = calloc(12, sizeof(char));
+                        strcat(messageShot, "my;miss;");
+                        strcat(messageShot, &x);
+                        strcat(messageShot, ",");
+                        strcat(messageShot, &y);
+                        strcat(messageShot, "\n");
+                        send(socket, messageShot, 12, 0);
+
+                        char *enemyShot = NULL;
+                        enemyShot = calloc(15, sizeof(char));
+                        strcat(enemyShot, "enemy;miss;");
+                        strcat(enemyShot, &x);
+                        strcat(enemyShot, ",");
+                        strcat(enemyShot, &y);
+                        strcat(enemyShot, "\n");
+                        send(GAMES[i]->player2->playerSocket, enemyShot, 15, 0);
+                        //already
+                    } else {
+                        char *messageShot = NULL;
+                        messageShot = calloc(11, sizeof(char));
+                        strcat(messageShot, "my;already;");
+                        strcat(messageShot, &x);
+                        strcat(messageShot, &y);
+                        strcat(messageShot, "\n");
+                        send(socket, messageShot, 14, 0);
+                    }
+                    //fire from player2
+                } else if (strcmp(GAMES[i]->player2->nick,name) == 0 && GAMES[i]->playerTurn == 2){
+                    GAMES[i]->playerTurn = 1;
+                    //hit
+                    if (GAMES[i]->gridPlayer1[fireX][fireY] == 1){
+                        GAMES[i]->gridPlayer1[fireX][fireY] = 2;
+                        GAMES[i]->player1Ships--;
+                        //player1 lose
+                        if (GAMES[i]->player1Ships == 0){
+                            char *messageShot = NULL;
+                            messageShot = calloc(12, sizeof(char));
+                            strcat(messageShot, "my;shot;");
+                            strcat(messageShot, &x);
+                            strcat(messageShot, ",");
+                            strcat(messageShot, &y);
+                            strcat(messageShot, "\n");
+                            send(socket, messageShot, 12, 0);
+
+                            char *enemyShot = NULL;
+                            enemyShot = calloc(15, sizeof(char));
+                            strcat(enemyShot, "enemy;sink;");
+                            strcat(enemyShot, &x);
+                            strcat(enemyShot, ",");
+                            strcat(enemyShot, &y);
+                            strcat(enemyShot, "\n");
+                            send(GAMES[i]->player1->playerSocket, enemyShot, 15, 0);
+
+                            endGame(GAMES[i]);
+                            return;
+                            //game continue
+                        } else {
+                            char *messageShot = NULL;
+                            messageShot = calloc(12, sizeof(char));
+                            strcat(messageShot, "my;shot;");
+                            strcat(messageShot, &x);
+                            strcat(messageShot, ",");
+                            strcat(messageShot, &y);
+                            strcat(messageShot, "\n");
+                            send(socket, messageShot, 12, 0);
+                            printf("send response for hit to player 2\n");
+
+                            char *enemyShot = NULL;
+                            enemyShot = calloc(15, sizeof(char));
+                            strcat(enemyShot, "enemy;sink;");
+                            strcat(enemyShot, &x);
+                            strcat(enemyShot, ",");
+                            strcat(enemyShot, &y);
+                            strcat(enemyShot, "\n");
+                            send(GAMES[i]->player1->playerSocket, enemyShot, 15, 0);
+                            printf("send response for hit to player 1\n");
+                        }
+                        //miss
+                    } else if (GAMES[i]->gridPlayer1[fireX][fireY] == 0){
+                        GAMES[i]->gridPlayer1[fireX][fireY] = 2;
+                        char *messageShot = NULL;
+                        messageShot = calloc(12, sizeof(char));
+                        strcat(messageShot, "my;miss;");
+                        strcat(messageShot, &x);
+                        strcat(messageShot, ",");
+                        strcat(messageShot, &y);
+                        strcat(messageShot, "\n");
+                        send(socket, messageShot, 12, 0);
+
+                        char *enemyShot = NULL;
+                        enemyShot = calloc(15, sizeof(char));
+                        strcat(enemyShot, "enemy;miss;");
+                        strcat(enemyShot, &x);
+                        strcat(enemyShot, ",");
+                        strcat(enemyShot, &y);
+                        strcat(enemyShot, "\n");
+                        send(GAMES[i]->player1->playerSocket, enemyShot, 15, 0);
+                        //already
+                    } else {
+                        char *messageShot = NULL;
+                        messageShot = calloc(11, sizeof(char));
+                        strcat(messageShot, "my;already;");
+                        strcat(messageShot, &x);
+                        strcat(messageShot, &y);
+                        strcat(messageShot, "\n");
+                        send(socket, messageShot, 14, 0);
+                    }
+                }
+                break;
+            }
+        }
+    }
+}
+
+void endGame(game *endGame) {
+
+}
+
+void setShips(int socket, char *name, char *room, char *placing) {
+    for (int i = 0; i < MAX_ROOMS; ++i) {
+        if (GAMES[i] != NULL && !strcmp(GAMES[i]->gameOwnerNick, room)){
+            if (!strcmp(GAMES[i]->player1->nick, name)){
+                for (int j = 0; j < 6; ++j) {
+                    for (int k = 0; k < 6; ++k) {
+                        GAMES[i]->gridPlayer1[j][k] = placing[j * 6 + k] - 48;
+                    }
+
+                }
+                GAMES[i]->player1Grid = true;
+                send(socket,"place\n", 6, 0);
+                logSent(6);
+            }
+            if (!strcmp(GAMES[i]->player2->nick, name)){
+                for (int j = 0; j < 6; ++j) {
+                    for (int k = 0; k < 6; ++k) {
+                        GAMES[i]->gridPlayer2[j][k] = placing[j * 6 + k] - 48;
+                    }
+                }
+                GAMES[i]->player2Grid = true;
+                printf("Nastaven grid pro player2\n");
+                send(socket,"place\n", 6, 0);
+                logSent(6);
+            }
+
+            if (GAMES[i]->player2Grid && GAMES[i]->player1Grid){
+                GAMES[i]->gameStatus = 2;
+                GAMES[i]->playerTurn = 1;
+
+                send(GAMES[i]->player1->playerSocket, "gamestart;0\n",12, 0);
+                send(GAMES[i]->player2->playerSocket, "gamestart\n",10, 0);
+            }
+        }
+    }
+
+}
+
 void joinRoom(int socket, char *name, char *room) {
     char *message;
     message = calloc(68, sizeof(char));
@@ -147,6 +359,7 @@ void joinRoom(int socket, char *name, char *room) {
                     GAMES[i]->playerCount++;
                     GAMES[i]->player2 = findPlayerByName(name);
                     GAMES[i]->gameStatus = 1;
+                    GAMES[i]->player2Connected = true;
                     if (!GAMES[i]->player2){
                         send(socket, "nepodariloSePripojit\n", 21, 0);
                         logSent(21);
@@ -159,14 +372,14 @@ void joinRoom(int socket, char *name, char *room) {
                     send(socket, message, 68, 0);
                     logSent(68);
                     printf("Send to player2 %i %s\n", socket, message);
-                    notifyJoint(GAMES[i]->player1->playerSocket, GAMES[i]->player2->nick);
+                    notifyJoin(GAMES[i]->player1->playerSocket, GAMES[i]->player2->nick);
                 }
             }
         }
     }
 }
 
-void notifyJoint(int socket, char *player) {
+void notifyJoin(int socket, char *player) {
     char *message2;
     message2 = calloc(43, sizeof(char));
     strcat(message2, "prepareGame;");
@@ -178,7 +391,6 @@ void notifyJoint(int socket, char *player) {
 }
 
 void requestRooms(int socket) {
-    //TODO
     char *message;
     message = calloc(30 * MAX_ROOMS + 17, sizeof(char));
     strcat(message, "rooms;");
