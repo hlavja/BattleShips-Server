@@ -14,6 +14,8 @@ void resetGame(game *pGame);
 
 void leaveRoom(char *room);
 
+void sendReconnectMessage(int socket, char *name);
+
 int parseMessage(int socket, char *msg) {
     long int type;
     char *name, *room, t[2], *placing, *x, *y;
@@ -152,6 +154,7 @@ void rematch(char *name, char *room) {
             } else if (!strcmp(GAMES[i]->player2->nick, name)){
                 GAMES[i]->player2Repeat = true;
                 if (GAMES[i]->player2Repeat && GAMES[i]->player1Repeat){
+                    resetGame(GAMES[i]);
                     char *repeat = "repeat\n";
                     send(GAMES[i]->player1->playerSocket, repeat, 7, 0);
                     send(GAMES[i]->player2->playerSocket, repeat, 7, 0);
@@ -172,6 +175,8 @@ void resetGame(game *pGame) {
     pGame->player1Grid = false;
     pGame->playerTurn = 1;
     pGame->gameStatus = 1; // 0 waiting, 1 ready, 2 running
+    pGame->player1Connected = true;
+    pGame->player2Connected = true;
 
     for (int i = 0; i < 6; ++i) {
         for (int j = 0; j < 6; ++j) {
@@ -246,7 +251,7 @@ void shoot(int socket, char *name, char *room, char x, char y) {
                         }
                         //miss
                     } else if (GAMES[i]->gridPlayer2[fireX][fireY] == 0){
-                        GAMES[i]->gridPlayer2[fireX][fireY] = 2;
+                        GAMES[i]->gridPlayer2[fireX][fireY] = 3;
                         char *messageShot = NULL;
                         messageShot = calloc(12, sizeof(char));
                         strcat(messageShot, "my;miss;");
@@ -329,7 +334,7 @@ void shoot(int socket, char *name, char *room, char x, char y) {
                         }
                         //miss
                     } else if (GAMES[i]->gridPlayer1[fireX][fireY] == 0){
-                        GAMES[i]->gridPlayer1[fireX][fireY] = 2;
+                        GAMES[i]->gridPlayer1[fireX][fireY] = 3;
                         char *messageShot = NULL;
                         messageShot = calloc(12, sizeof(char));
                         strcat(messageShot, "my;miss;");
@@ -548,13 +553,20 @@ void playerLogin(int socket, char *name) {
         printf("Maximum players on server!\n");
         send(socket, "logErr\n", 7, 0);
         logSent(7);
+        return;
     }
 
     for (int i = 0; i < MAX_PLAYER_COUNT; ++i) {
         if (PLAYERS[i] != NULL && !strcmp(PLAYERS[i]->nick, name)){
-            printf("Username already taken!\n");
-            send(socket, "nickTaken\n", 10, 0);
-            logSent(10);
+            if (!findGameWithInactivePlayer(name)){
+                printf("Username already taken!\n");
+                send(socket, "nickTaken\n", 10, 0);
+                logSent(10);
+                return;
+            } else if (findGameWithInactivePlayer(name)){
+                sendReconnectMessage(socket, name);
+                return;
+            }
         }
     }
 
@@ -579,9 +591,111 @@ void playerLogin(int socket, char *name) {
     logSent(7);
 }
 
+void sendReconnectMessage(int socket, char *name) {
+    for (int i = 0; i < MAX_ROOMS; ++i) {
+        if (GAMES[i] != NULL && !strcmp(GAMES[i]->player1->nick, name)){
+            GAMES[i]->player1->playerSocket = socket;
+            GAMES[i]->player1Connected = true;
+            char *message = calloc(150, sizeof(char));
+            if (GAMES[i]->gameStatus == 1){
+                //send change to placing stage (activePlacing;roomname\n)
+                strcat(message, "activePlacing;");
+                strcat(message, GAMES[i]->gameOwnerNick);
+                strcat(message, ";\n");
+                send(socket, message, 150, 0);
+                logSent(150);
+                break;
+            } else if (GAMES[i]->gameStatus == 2){
+                //send game state (activeGame;roomname;myplacing;enemyplacing;turn\n)
+                strcat(message, "activeGame;");
+                strcat(message, GAMES[i]->gameOwnerNick);
+                strcat(message, ";");
+                for (int j = 0; j < 6; ++j) {
+                    for (int k = 0; k < 6; ++k) {
+                        strcat(message, (GAMES[i]->gridPlayer1[j][k] + 48));
+                    }
+                }
+                strcat(message, ";");
+                for (int l = 0; l < 6; ++l) {
+                    for (int j = 0; j < 6; ++j) {
+                        if (GAMES[i]->gridPlayer2[l][j] == 1){
+                            strcat(message, "0");
+                        } else{
+                            strcat(message, (GAMES[i]->gridPlayer2[l][j] + 48));
+                        }
+                    }
+                }
+                if (GAMES[i]->playerTurn == 1){
+                    strcat(message, ";1;\n");
+                } else{
+                    strcat(message, ";0;\n");
+                }
+                send(socket, message, 150, 0);
+                logSent(150);
+                break;
+            }
+        }
+        if (GAMES[i] != NULL && !strcmp(GAMES[i]->player2->nick, name)){
+            GAMES[i]->player2->playerSocket = socket;
+            GAMES[i]->player2Connected = true;
+            char *message = calloc(150, sizeof(char));
+            if (GAMES[i]->gameStatus == 1){
+                //send change to placing stage (activePlacing;roomname\n)
+                strcat(message, "activePlacing;");
+                strcat(message, GAMES[i]->gameOwnerNick);
+                strcat(message, ";\n");
+                send(socket, message, 150, 0);
+                logSent(150);
+                break;
+            } else if (GAMES[i]->gameStatus == 2){
+                //send game state (activeGame;roomname;myplacing;enemyplacing;turn\n)
+                strcat(message, "activeGame;");
+                strcat(message, GAMES[i]->gameOwnerNick);
+                strcat(message, ";");
+                for (int j = 0; j < 6; ++j) {
+                    for (int k = 0; k < 6; ++k) {
+                        strcat(message, (GAMES[i]->gridPlayer2[j][k] + 48));
+                    }
+                }
+                strcat(message, ";");
+                for (int l = 0; l < 6; ++l) {
+                    for (int j = 0; j < 6; ++j) {
+                        if (GAMES[i]->gridPlayer1[l][j] == 1){
+                            strcat(message, "0");
+                        } else{
+                            strcat(message, (GAMES[i]->gridPlayer1[l][j] + 48));
+                        }
+                    }
+                }
+                if (GAMES[i]->playerTurn == 2){
+                    strcat(message, ";1;\n");
+                } else{
+                    strcat(message, ";0;\n");
+                }
+                send(socket, message, 150, 0);
+                logSent(150);
+                break;
+            }
+        }
+    }
+}
+
 void socketCut(int socket){
     for (int i = 0; i < MAX_PLAYER_COUNT; ++i) {
         if (PLAYERS[i] != NULL){
+            for (int j = 0; j < MAX_ROOMS; ++j) {
+                if (GAMES[i] != NULL && GAMES[i]->player1 != NULL && GAMES[i]->player1->playerSocket == socket){
+                    if (GAMES[i]->player2 != NULL){
+                        send(GAMES[i]->player2->playerSocket, "won;rooms\n", 4, 0);
+                        break;
+                    }
+                } else if (GAMES[i] != NULL && GAMES[i]->player2 != NULL && GAMES[i]->player2->playerSocket == socket) {
+                    if (GAMES[i]->player1 != NULL) {
+                        send(GAMES[i]->player1->playerSocket, "won;rooms\n", 4, 0);
+                        break;
+                    }
+                }
+            }
             if (PLAYERS[i]->playerSocket == socket){
                 printf("User %s disconnected due violations against server policy!\n", PLAYERS[i]->nick);
                 //freePlayer(&PLAYERS[i]);

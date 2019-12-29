@@ -55,6 +55,18 @@ void printGames(){
     }
 }
 
+bool findGameWithInactivePlayer(char *name){
+    for (int i = 0; i < MAX_ROOMS; ++i) {
+        if (GAMES[i] != NULL && GAMES[i]->player1Connected == false && GAMES[i]->player1 != NULL && !strcmp(GAMES[i]->player1->nick, name)){
+            return true;
+        }
+        if (GAMES[i] != NULL && GAMES[i]->player2Connected == false && GAMES[i]->player2 != NULL && !strcmp(GAMES[i]->player2->nick, name)){
+            return true;
+        }
+    }
+    return false;
+}
+
 
 
 

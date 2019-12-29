@@ -26,7 +26,7 @@ typedef struct game{
 game *createNewGame(player *player1);
 void printGames();
 
-
+bool findGameWithInactivePlayer(char *name);
 void freeGames (game **allGames);
 game **gameSearchById (game **allGames, int id);
 game **gameSearchByNick (game **allGames, char *nick);
