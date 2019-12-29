@@ -191,7 +191,7 @@ void resetGame(game *pGame) {
 void shoot(int socket, char *name, char *room, char x, char y) {
     int fireX = x - 48, fireY = y - 48;
     if (fireX > 5 || fireX < 0 || fireY > 5 || fireY < 0){
-        send(socket, "err\n", 4, 0);
+        send(socket, "errShoot\n", 4, 0);
         close(socket);
     } else {
         for (int i = 0; i < MAX_ROOMS; ++i) {
