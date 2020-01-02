@@ -81,7 +81,12 @@ int startServer(){
     myAddr.sin_family = AF_INET;
     myAddr.sin_port = htons(SERVER_PORT);
 
-    int valid = isIpValid(IP_ADDRESS);
+    int valid = 0;
+    if (IP_ADDRESS != NULL){
+        char *tmp = malloc(sizeof(char) * strlen(IP_ADDRESS));
+        strcpy(tmp, IP_ADDRESS);
+        valid = isIpValid(tmp);
+    }
     if (valid) {
         myAddr.sin_addr.s_addr = inet_addr(IP_ADDRESS);
     } else {
@@ -101,7 +106,11 @@ int startServer(){
 
     printf("Server successfully started\n");
     printf("--------------------------------------\n");
-    printf("Server is running on %s:%d\n", "10.0.2.15", SERVER_PORT);
+    if (IP_ADDRESS != NULL){
+        printf("Server is running on %s:%d\n", IP_ADDRESS, SERVER_PORT);
+    } else {
+        printf("Server is running on port %d\n", SERVER_PORT);
+    }
     printf("--------------------------------------\n");
 
     pthread_rwlock_init(&LOCKTHREAD, NULL);

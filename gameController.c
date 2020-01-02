@@ -379,20 +379,27 @@ void sendGameResult(int winnerSocket, int loserSocket) {
 }
 
 void lostConnectionToPlayer(int socket){
-    for (int j = 0; j < MAX_ROOMS; ++j) {
-        if (GAMES[j] != NULL && GAMES[j]->player1->playerSocket == socket){
-            GAMES[j]->player1Connected = false;
-            break;
-        }
-        if (GAMES[j] != NULL && GAMES[j]->player2->playerSocket == socket){
-            GAMES[j]->player2Connected = false;
+
+    for (int i = 0; i < MAX_PLAYER_COUNT; ++i) {
+        if (PLAYERS[i] != NULL && socket == PLAYERS[i]->playerSocket){
+            PLAYERS[i]->connected = false;
             break;
         }
     }
 
-    for (int i = 0; i < MAX_PLAYER_COUNT; ++i) {
-        if (PLAYERS[i] != NULL && socket == PLAYERS[i]->playerSocket){
-            PLAYERS[i]->playerSocket = -1;
+    for (int j = 0; j < MAX_ROOMS; ++j) {
+        if (GAMES[j] != NULL && GAMES[j]->player1->playerSocket == socket){
+            GAMES[j]->player1Connected = false;
+            if (GAMES[j]->gameStatus == 0){
+                GAMES[j] = NULL;
+            }
+            break;
+        }
+        if (GAMES[j] != NULL && GAMES[j]->player2->playerSocket == socket){
+            GAMES[j]->player2Connected = false;
+            if (GAMES[j]->gameStatus == 0){
+                GAMES[j] = NULL;
+            }
             break;
         }
     }
@@ -687,11 +694,15 @@ void socketCut(int socket){
                 if (GAMES[i] != NULL && GAMES[i]->player1 != NULL && GAMES[i]->player1->playerSocket == socket){
                     if (GAMES[i]->player2 != NULL){
                         send(GAMES[i]->player2->playerSocket, "won;rooms\n", 4, 0);
+                        GAME_COUNTER--;
+                        GAMES[i] = NULL;
                         break;
                     }
                 } else if (GAMES[i] != NULL && GAMES[i]->player2 != NULL && GAMES[i]->player2->playerSocket == socket) {
                     if (GAMES[i]->player1 != NULL) {
                         send(GAMES[i]->player1->playerSocket, "won;rooms\n", 4, 0);
+                        GAME_COUNTER--;
+                        GAMES[i] = NULL;
                         break;
                     }
                 }

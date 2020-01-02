@@ -20,9 +20,9 @@ void *connectionHandler(void *arg){
         receivedBoolean = recv(clientSocket, msgSize, 3, 0); //first three bytes determine message length
         logReceive(3);
 
-        while (receivedBoolean < 0 && missedPings < 100) {
+        while (receivedBoolean < 0 && missedPings < 12) {
 
-            if (missedPings == 99) {
+            if (missedPings == 1) {
                 printf("Sending %i lost con notify %d.\n",missedPings, clientSocket);
                 lostConnectionToPlayer(clientSocket);
             }

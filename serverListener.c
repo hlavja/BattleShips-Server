@@ -14,30 +14,28 @@ void *serverListener(void *arg){
     while(1){
         printf(">>>\n");
         scanf("%s",command);
-        if(strcasecmp(command, "exit")==0 || strcasecmp(command, "close")==0){
+        if(strcasecmp(command, "exit") == 0 || strcasecmp(command, "close") == 0){
             logMsg("Server ukoncen prikazem EXIT\n");
             logServerShutdown();
             printf("\nSERVER: Ukonceno prikazem EXIT\n");
             exit(0);
         }
-        else if(strcmp(command, "game")==0){
+        else if(strcmp(command, "game") == 0){
             printf("\nBezici hry:\n");
             printf("---------------------------\n");
             printGames();
         }
-        else if(strcmp(command, "info")==0){
+        else if(strcmp(command, "info") == 0){
             printf("INFO: Server bezi na %s:%d\n", IP_ADDRESS, SERVER_PORT);
-            printf("INFO: Server ceka na protihrace %d s.\n", ROOM_WAITING_TIME);
-            printf("INFO: Server ceka na reconnect %d s.\n", TIMEOUT);
             printf("INFO: Maximalni pocet her je  %d. \n", MAX_ROOMS);
 
         }
-        else if(strcmp(command, "help")==0){
+        else if(strcmp(command, "help") == 0){
             printf("exit (close): ukonci server\n");
             printf("game: vypise prave probihajici hry\n");
             printf("info: vypise informace o server\n");
         }
-        else if(strcmp(command, "player")==0){
+        else if(strcmp(command, "player") == 0){
             printf("\nPrihlaseni uzivatele:\n");
             printf("---------------------------\n");
             printPlayers();

@@ -12,6 +12,7 @@ player* createPlayer(int socket, char *name) {
     newPlayer->playerSocket = socket;
     newPlayer->gameId = 0;
     newPlayer->inGame = 0;
+    newPlayer->connected = true;
     strncpy(newPlayer->nick, name, 30);
 
     return newPlayer;

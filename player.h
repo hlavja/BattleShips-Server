@@ -16,7 +16,7 @@
 typedef struct player{
     char nick [30];
     int playerSocket;
-    bool inGame;
+    bool inGame, connected;
     int gameId;
 } player;
 
