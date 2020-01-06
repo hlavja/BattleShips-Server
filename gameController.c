@@ -456,19 +456,28 @@ void joinRoom(int socket, char *name, char *room) {
                     GAMES[i]->gameStatus = 1;
                     GAMES[i]->player2Connected = true;
                     if (!GAMES[i]->player2){
-                        send(socket, "nepodariloSePripojit\n", 21, 0);
-                        logSent(21);
+                        send(socket, "joinERR\n", 8, 0);
+                        logSent(8);
                         printf("Nepripojen hrac %s\n", name);
+                    } else {
+                        strcat(message, GAMES[i]->gameOwnerNick);
+                        strcat(message, ";");
+                        strcat(message, GAMES[i]->player1->nick);
+                        strcat(message, "\n");
+                        send(socket, message, 68, 0);
+                        logSent(68);
+                        printf("Send to player2 %i %s\n", socket, message);
+                        notifyJoin(GAMES[i]->player1->playerSocket, GAMES[i]->player2->nick);
                     }
-                    strcat(message, GAMES[i]->gameOwnerNick);
-                    strcat(message, ";");
-                    strcat(message, GAMES[i]->player1->nick);
-                    strcat(message, "\n");
-                    send(socket, message, 68, 0);
-                    logSent(68);
-                    printf("Send to player2 %i %s\n", socket, message);
-                    notifyJoin(GAMES[i]->player1->playerSocket, GAMES[i]->player2->nick);
+                } else {
+                    send(socket, "joinERR\n", 8, 0);
+                    logSent(8);
+                    printf("Nepripojen hrac %s\n", name);
                 }
+            } else {
+                send(socket, "joinERR\n", 8, 0);
+                logSent(8);
+                printf("Nepripojen hrac %s\n", name);
             }
         }
     }
