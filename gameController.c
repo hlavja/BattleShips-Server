@@ -131,8 +131,8 @@ int parseMessage(int socket, char *msg) {
 void leaveRoom(char *room) {
     for (int i = 0; i < MAX_ROOMS; ++i) {
         if (GAMES[i] != NULL && !strcmp(GAMES[i]->gameOwnerNick, room)){
-            send(GAMES[i]->player1->playerSocket,"endGame\n", 8, 0);
-            send(GAMES[i]->player2->playerSocket,"endGame\n", 8, 0);
+            send(GAMES[i]->player1->playerSocket,"endGame;\n", 8, 0);
+            send(GAMES[i]->player2->playerSocket,"endGame;\n", 8, 0);
             GAMES[i] = NULL;
         }
     }
@@ -706,10 +706,18 @@ void socketCut(int socket){
                         GAME_COUNTER--;
                         GAMES[i] = NULL;
                         break;
+                    } else {
+                        GAME_COUNTER--;
+                        GAMES[i] = NULL;
+                        break;
                     }
                 } else if (GAMES[i] != NULL && GAMES[i]->player2 != NULL && GAMES[i]->player2->playerSocket == socket) {
                     if (GAMES[i]->player1 != NULL) {
                         send(GAMES[i]->player1->playerSocket, "won;rooms\n", 4, 0);
+                        GAME_COUNTER--;
+                        GAMES[i] = NULL;
+                        break;
+                    } else {
                         GAME_COUNTER--;
                         GAMES[i] = NULL;
                         break;
